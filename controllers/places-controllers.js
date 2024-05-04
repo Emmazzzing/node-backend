@@ -1,7 +1,9 @@
 const HttpError = require("../models/http-error");
 const uuid = require("uuid");
 const Place = require("../models/place");
+const User = require("../models/user");
 const { validationResult } = require("express-validator");
+const mongoose = require("mongoose");
 const getCorrdsForAddress = require("../util/location");
 
 let DUMMY_PLACES = [
@@ -43,9 +45,9 @@ const getPlaceById = async (req, res, next) => {
 
 const getPlacesByUserId = async (req, res, next) => {
   const userId = req.params.uid;
-  let places;
+  let userWithPlaces;
   try {
-    places = await Place.find({ creator: userId });
+    userWithPlaces = await User.findById(userId).populate("places");
   } catch (err) {
     const error = new HttpError(
       "Fetching places failed, please try again later",
@@ -54,12 +56,14 @@ const getPlacesByUserId = async (req, res, next) => {
     return next(error);
   }
 
-  if (!places || places.length === 0) {
+  if (!userWithPlaces || userWithPlaces.places.length === 0) {
     return next(
       new HttpError("Could not find a place for the provided user id.", 404)
     );
   }
-  res.json({ places: places.map((p) => p.toObject({ getters: true })) });
+  res.json({
+    places: userWithPlaces.places.map((p) => p.toObject({ getters: true })),
+  });
 };
 
 const createPlace = async (req, res, next) => {
@@ -85,8 +89,28 @@ const createPlace = async (req, res, next) => {
     address,
     creator,
   });
+  let user;
   try {
-    await createdPlace.save();
+    user = await User.findById(creator);
+  } catch (err) {
+    const error = new HttpError("creating place failed, please try again", 500);
+    return next(error);
+  }
+  if (!user) {
+    const error = new HttpError("We could not find user for provided id", 404);
+    return next(error);
+  }
+  console.log(user);
+  //mongodb session 和 transaction 保证多个任务都完成之后 才执行下一步 如果有任务没有完成就会撤销完成的任务
+
+  try {
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+    await createdPlace.save({ session: sess });
+    //只会把id推进去
+    user.places.push(createdPlace);
+    await user.save({ session: sess });
+    await sess.commitTransaction();
   } catch (err) {
     return next(new HttpError("creating place failed, please try again", 500));
   }
@@ -135,7 +159,8 @@ const deletePlace = async (req, res, next) => {
   const targetPlaceId = req.params.pid;
   let place;
   try {
-    place = await Place.findById(targetPlaceId);
+    // populate 只能在两个表有交集的时候工作
+    place = await Place.findById(targetPlaceId).populate("creator");
   } catch (err) {
     const error = new HttpError(
       "can not delete this place, please try again later",
@@ -143,8 +168,20 @@ const deletePlace = async (req, res, next) => {
     );
     return next(error);
   }
+  if (!place) {
+    const error = new HttpError("Counld not find place for this id", 404);
+    return next(error);
+  }
+
   try {
-    await place.deleteOne();
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+    await place.deleteOne({ session: sess });
+    //只会把id删掉
+    place.creator.places.pull(place);
+    //因为刚刚populate了 所以可以从这个表 到另一个表
+    await place.creator.save({ session: sess });
+    await sess.commitTransaction();
   } catch (err) {
     const error = new HttpError("can not delete this place", 500);
     return next(error);
