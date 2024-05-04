@@ -47,7 +47,6 @@ const getPlacesByUserId = (req, res, next) => {
 const createPlace = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log(errors);
     throw new HttpError("Invalid input passed, please check your data", 422);
   }
   const { title, description, coordinates, address, creator } = req.body;
@@ -64,6 +63,10 @@ const createPlace = (req, res, next) => {
 };
 
 const updatePlace = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    throw new HttpError("Invalid input passed, please check your data", 422);
+  }
   const { title, description } = req.body;
   const placeId = req.params.pid;
 
@@ -80,6 +83,10 @@ const updatePlace = (req, res, next) => {
 
 const deletePlace = (req, res, next) => {
   const targetPlaceId = req.params.pid;
+  const place = DUMMY_PLACES.find((p) => p.id === targetPlaceId);
+  if (!place) {
+    throw new HttpError("no such place found");
+  }
   DUMMY_PLACES = DUMMY_PLACES.filter((p) => p.id != targetPlaceId);
   res.status(200).json({ message: "deleted" });
 };
