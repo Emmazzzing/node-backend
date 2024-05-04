@@ -16,6 +16,7 @@
     "express-validator": "^7.0.1",
     "mongodb": "^6.6.0",
     "mongoose": "^8.3.3",
+    "mongoose-unique-validator": "^5.0.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
