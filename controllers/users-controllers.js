@@ -57,9 +57,16 @@ const signup = async (req, res, next) => {
   res.status(201).json({ users: newUser.toObject({ getters: true }) });
 };
 
-const login = (req, res, next) => {
+const login = async (req, res, next) => {
   const { email, password } = req.body;
-  const user = DUMMY_USERS.find((u) => u.email === email);
+
+  let user;
+  try {
+    user = await User.findOne({ email: email });
+  } catch (err) {
+    const error = new HttpError("Login failed, please try again", 500);
+    return next(error);
+  }
   if (!user || user.password !== password) {
     const error = new HttpError("No user found or your password is wrong", 401);
     return next(error);
