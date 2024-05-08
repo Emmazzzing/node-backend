@@ -15,9 +15,15 @@ const fileUpload = multer({
     },
     filename: (req, file, cb) => {
       const ext = MINE_TYPE_MAP[file.mimetype];
-      cb(null, uuid.v1 + "." + ext);
+      cb(null, uuid.v4() + "." + ext);
     },
   }),
+  // for sure the file is image
+  fileFilter: (req, file, cb) => {
+    const isValid = !!MINE_TYPE_MAP[file.mimetype];
+    let error = isValid ? null : new Error("Invalid mine type!");
+    cb(error, isValid);
+  },
 });
 
 module.exports = fileUpload;
