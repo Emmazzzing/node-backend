@@ -71,7 +71,10 @@ const login = async (req, res, next) => {
     const error = new HttpError("No user found or your password is wrong", 401);
     return next(error);
   }
-  res.json({ message: "login!" });
+  res.json({
+    message: "login!",
+    user: user.toObject({ getters: true }),
+  });
 };
 
 exports.getUsers = getUsers;
