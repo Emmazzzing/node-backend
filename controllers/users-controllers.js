@@ -65,15 +65,15 @@ const signup = async (req, res, next) => {
   let token;
   try {
     token = jwt.sign(
-      {
-        userId: newUser.id,
-        userEmail: newUser.email,
-      },
-      "supersecret_donttell_anyone",
+      { userId: createdUser.id, email: createdUser.email },
+      "supersecret_dont_share",
       { expiresIn: "1h" }
     );
   } catch (err) {
-    const error = new HttpError("Creating user failed, please try again", 500);
+    const error = new HttpError(
+      "Signing up failed, please try again later.",
+      500
+    );
     return next(error);
   }
   res
@@ -119,19 +119,19 @@ const login = async (req, res, next) => {
   let token;
   try {
     token = jwt.sign(
-      { userId: user.id, email: user.email },
-      "supersecret_donttell_anyone",
+      { userId: existingUser.id, email: existingUser.email },
+      "supersecret_dont_share",
       { expiresIn: "1h" }
     );
-  } catch (error) {
-    const err = new HttpError(
-      "Could not log you in, please try again later",
+  } catch (err) {
+    const error = new HttpError(
+      "Logging in failed, please try again later.",
       500
     );
-    return next(err);
+    return next(error);
   }
 
-  res.json({ userId: newUser.id, email: newUser.email, token: token });
+  res.json({ userId: user.id, email: user.email, token: token });
 };
 
 exports.getUsers = getUsers;
