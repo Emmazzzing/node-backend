@@ -1,11 +1,14 @@
 const fs = require("fs");
 const path = require("path");
+
 const express = require("express");
 const bodyParser = require("body-parser");
-const placeRoutes = require("./routes/places-routes");
-const userRoutes = require("./routes/users-routes");
-const HttpError = require("./models/http-error");
 const mongoose = require("mongoose");
+
+const placesRoutes = require("./routes/places-routes");
+const usersRoutes = require("./routes/users-routes");
+const HttpError = require("./models/http-error");
+
 const app = express();
 
 app.use(bodyParser.json());
@@ -23,12 +26,12 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/api/places", placeRoutes);
-app.use("/api/users", userRoutes);
+app.use("/api/places", placesRoutes);
+app.use("/api/users", usersRoutes);
 
 app.use((req, res, next) => {
-  const error = new HttpError("Could not find this route", 404);
-  return next(error);
+  const error = new HttpError("Could not find this route.", 404);
+  throw error;
 });
 
 app.use((error, req, res, next) => {
@@ -37,17 +40,19 @@ app.use((error, req, res, next) => {
       console.log(err);
     });
   }
-  //if already sent back response means no error
   if (res.headerSent) {
     return next(error);
   }
   res.status(error.code || 500);
   res.json({ message: error.message || "An unknown error occurred!" });
 });
+const db_username = process.env.DB_USER;
+const db_password = process.env.DB_PASSWORD;
+const db_name = process.env.DB_NAME;
 
 mongoose
   .connect(
-    "mongodb+srv://emmazzzing1201:wzwYVNlVw84cL4vn@cluster0.4if49li.mongodb.net/mern?retryWrites=true&w=majority&appName=Cluster0"
+    `mongodb+srv://${db_username}:${db_password}@cluster0.4if49li.mongodb.net/${db_name}?retryWrites=true&w=majority&appName=Cluster0`
   )
   .then(() => {
     app.listen(5000);

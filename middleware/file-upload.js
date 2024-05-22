@@ -1,7 +1,7 @@
 const multer = require("multer");
 const uuid = require("uuid");
 
-const MINE_TYPE_MAP = {
+const MIME_TYPE_MAP = {
   "image/png": "png",
   "image/jpeg": "jpeg",
   "image/jpg": "jpg",
@@ -14,14 +14,13 @@ const fileUpload = multer({
       cb(null, "uploads/images");
     },
     filename: (req, file, cb) => {
-      const ext = MINE_TYPE_MAP[file.mimetype];
-      cb(null, uuid.v4() + "." + ext);
+      const ext = MIME_TYPE_MAP[file.mimetype];
+      cb(null, uuid.v1() + "." + ext);
     },
   }),
-  // for sure the file is image
   fileFilter: (req, file, cb) => {
-    const isValid = !!MINE_TYPE_MAP[file.mimetype];
-    let error = isValid ? null : new Error("Invalid mine type!");
+    const isValid = !!MIME_TYPE_MAP[file.mimetype];
+    let error = isValid ? null : new Error("Invalid mime type!");
     cb(error, isValid);
   },
 });
